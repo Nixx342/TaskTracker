@@ -1,52 +1,3 @@
-// import './App.css'
-// import LoginPage from "./assets/Pages/LoginPage.tsx";
-// import HomePage from "./assets/Pages/HomePage.tsx";
-// import {UserType} from './assets/Types/UserType.ts'
-//
-// function App() {
-//
-//     const registerUser =(user: UserType): void => {
-//         const openRequest = indexedDB.open('TaskTracker',1)
-//         openRequest.onerror = () => {
-//             console.error("Error: ", openRequest.error)
-//         }
-//         openRequest.onupgradeneeded = (event) => {
-//             const db = event.target.result;
-//             if (!db.objectStoreNames.contains('users')) {
-//                 db.createObjectStore('users', { keyPath: 'id' });
-//             }
-//         };
-//         openRequest.onsuccess = ()=> {
-//             const db = openRequest.result
-//
-//             db.createObjectStore('users',{keyPath: 'id'})
-//             const transaction = db.transaction('users', 'readwrite')
-//             const users = transaction.objectStore('users')
-//             const request = users.add(user)
-//             request.onsuccess = () => {
-//                 console.log('Пользователь ', user.username, ' успешно добавлен')
-//             }
-//             request.onerror = () => {
-//                 console.error('Error: ', request.error)
-//             }
-//         }
-//     }
-//
-//   return (
-//     <>
-//         <button onClick={()=>registerUser({id:Date.now(),username:'testUser',password:'123'})}>add</button>
-//         <LoginPage />
-//         <HomePage />
-//     </>
-//   )
-// }
-//
-// export default App
-
-
-
-
-
 import './App.css';
 import LoginPage from "./assets/Pages/LoginPage.tsx";
 import HomePage from "./assets/Pages/HomePage.tsx";
@@ -59,8 +10,11 @@ function openDatabase(): Promise<IDBDatabase> {
         const request: IDBOpenDBRequest = indexedDB.open("TaskTracker", 1)
         request.onupgradeneeded = (event: IDBVersionChangeEvent): void => {
             const db: IDBDatabase = (event.target as IDBOpenDBRequest).result
-            const objectStore: IDBObjectStore = db.createObjectStore("users", { keyPath: "id" })
-            objectStore.createIndex("username", "username", { unique: false })
+            // использует username как уникальный ключ т.к. username не может повторяться
+            const objectStore: IDBObjectStore = db.createObjectStore("users", { keyPath: "username" })
+            // username уникальный
+            objectStore.createIndex("username", "username", { unique: true })
+            // password у разных username может повторяться
             objectStore.createIndex("password", "password", { unique: false })
             console.log("Хранилище users создано")
         };
@@ -78,6 +32,7 @@ function openDatabase(): Promise<IDBDatabase> {
 
 function App() {
     const [db, setDb] = useState<IDBDatabase | null>(null);
+    const [isLogin, setIsLogin] = useState<boolean>(localStorage.getItem('isLogin') === 'true');
     useEffect(():() => void => {
         openDatabase()
             .then((database: IDBDatabase):void => {
@@ -115,12 +70,44 @@ function App() {
             console.error('Ошибка при добавлении Пользователя:', err)
         }
     }
+    const loginUser = (username: string, password: string): void => {
+        const transaction: IDBTransaction = db.transaction("users", "readonly")
+        const objectStore: IDBObjectStore = transaction.objectStore("users");
+        const request = objectStore.get(username)
+
+        request.onsuccess = (event: Event): void => {
+            const data = (event.target as IDBRequest).result;
+            if (data && data.password === password) {
+                setIsLogin(true)
+                localStorage.setItem('isLogin','true')
+            } else {
+                console.log("Неверный пароль")
+            }
+        }
+        request.onerror = (event: Event): void => {
+            console.error("Ошибка при получении записи:", (event.target as IDBOpenDBRequest).error);
+        }
+    }
+    const logout = () => {
+        setIsLogin(false);
+        localStorage.setItem('isLogin', 'false');
+    }
+    const login = () => {
+        setIsLogin(true);
+        localStorage.setItem('isLogin', 'true');
+    }
 
     return (
         <>
-            <button onClick={() => registerUser({id: 'qwe' ,username: 'testUser', password: '123' })}>add</button>
-            <LoginPage />
-            <HomePage />
+            <button onClick={() => login()}>add</button>
+            {
+                isLogin
+                // localStorage.getItem('isLogin') === 'true'
+                    ? <HomePage logout={logout} />
+                    : <LoginPage register={registerUser} login={loginUser} />
+            }
+            {/*<LoginPage register={registerUser} login={loginUser} />*/}
+            {/*<HomePage />*/}
         </>
     );
 }
