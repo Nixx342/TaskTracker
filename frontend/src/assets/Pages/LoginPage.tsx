@@ -5,12 +5,11 @@ const LoginPage = (props) => {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const modalOpen = (id: string) => {
-        const modal = document.getElementById(id)
+        const modal: HTMLElement | null = document.getElementById(id)
         modal?.showModal()
     }
     const modalClose = (id: string) => {
-        // const modal: HTMLElement|null = document.getElementById(id)
-        const modal: HTMLElement|null = document.getElementById('register')
+        const modal: HTMLElement | null = document.getElementById(id)
         modal?.close()
     }
 

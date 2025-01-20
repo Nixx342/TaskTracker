@@ -102,12 +102,10 @@ function App() {
             <button onClick={() => login()}>add</button>
             {
                 isLogin
-                // localStorage.getItem('isLogin') === 'true'
                     ? <HomePage logout={logout} />
                     : <LoginPage register={registerUser} login={loginUser} />
             }
-            {/*<LoginPage register={registerUser} login={loginUser} />*/}
-            {/*<HomePage />*/}
+
         </>
     );
 }
