@@ -1,5 +1,5 @@
 import {useState} from "react";
-
+import { UserType } from '../Types/UserType.ts';
 
 const LoginPage = (props) => {
     const [username, setUsername] = useState<string>('');
@@ -12,6 +12,27 @@ const LoginPage = (props) => {
         const modal: HTMLElement | null = document.getElementById(id)
         modal?.close()
     }
+    const register =(): void => {
+
+        const user: UserType  = {
+            username: username,
+            password: password,
+        }
+        props.register(user)
+        setUsername('')
+        setPassword('')
+        modalClose('register')
+    }
+    const login = () => {
+        const user: UserType  = {
+            username: username,
+            password: password
+        }
+        props.login(user)
+        setUsername('')
+        setPassword('')
+        modalClose('login')
+    }
 
     return (
         <>
@@ -22,23 +43,37 @@ const LoginPage = (props) => {
                 <span>Введите имя пользователя:
                     <input
                         type={'text'}
+                        value={username}
                         onChange={e => setUsername(e.target.value)}
                     />
                 </span>
                 <span>Введите пароль:
                     <input
                         type={'password'}
+                        value={password}
                         onChange={e => setPassword(e.target.value)}
                     />
                 </span>
-                <button onClick={() => props.login()}>Войти</button>
+                <button onClick={() => login()}>Войти</button>
                 <button onClick={() => modalClose('login')}>Отмена</button>
 
             </dialog>
             <dialog id="register">
-                <span>Введите имя пользователя: <input/></span>
-                <span>Введите пароль: <input/></span>
-                <button onClick={() => modalClose('register')}>Зарегистрироваться</button>
+                <span>Введите имя пользователя:
+                    <input
+                        type={'text'}
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                    />
+                </span>
+                <span>Введите пароль:
+                    <input
+                        type={'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                    />
+                </span>
+                <button onClick={() => register()}>Зарегистрироваться</button>
                 <button onClick={() => modalClose('register')}>Отмена</button>
             </dialog>
         </>

@@ -57,7 +57,7 @@ function App() {
             const addRequest = objectStore.add(user)
 
             addRequest.onsuccess = (): void => {
-
+                login()
                 console.log(`Пользователь "${user.username}" успешно добавлена`)
             }
             transaction.oncomplete = (): void => {
@@ -70,22 +70,20 @@ function App() {
             console.error('Ошибка при добавлении Пользователя:', err)
         }
     }
-    const loginUser = (username: string, password: string): void => {
+    const loginUser = (user: UserType): void => {
         const transaction: IDBTransaction = db.transaction("users", "readonly")
         const objectStore: IDBObjectStore = transaction.objectStore("users");
-        const request = objectStore.get(username)
-
+        const request = objectStore.get(user.username)
         request.onsuccess = (event: Event): void => {
             const data = (event.target as IDBRequest).result;
-            if (data && data.password === password) {
-                setIsLogin(true)
-                localStorage.setItem('isLogin','true')
+            if (data && data.password === user.password) {
+                login()
             } else {
                 console.log("Неверный пароль")
             }
         }
         request.onerror = (event: Event): void => {
-            console.error("Ошибка при получении записи:", (event.target as IDBOpenDBRequest).error);
+            console.error("Ошибка при получении записи:", (event.target as IDBRequest).error);
         }
     }
     const logout = () => {
@@ -99,7 +97,6 @@ function App() {
 
     return (
         <>
-            <button onClick={() => login()}>add</button>
             {
                 isLogin
                     ? <HomePage logout={logout} />
