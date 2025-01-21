@@ -4,7 +4,9 @@ const HomePage = (props) => {
 
     return (
         <>
-            HomePage
+            <div>
+                {props.activeUser}
+            </div>
             <button onClick={()=>props.logout()}>Выйти</button>
         </>
     )

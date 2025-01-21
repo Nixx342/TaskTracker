@@ -33,6 +33,7 @@ function openDatabase(): Promise<IDBDatabase> {
 function App() {
     const [db, setDb] = useState<IDBDatabase | null>(null);
     const [isLogin, setIsLogin] = useState<boolean>(localStorage.getItem('isLogin') === 'true');
+    const [activeUser, setActiveUser] = useState<string>('')
     useEffect(():() => void => {
         openDatabase()
             .then((database: IDBDatabase):void => {
@@ -51,39 +52,45 @@ function App() {
     }, [])
 
     const registerUser = (user: UserType): void => {
-        try {
-            const transaction = db.transaction("users", "readwrite")
-            const objectStore: IDBObjectStore = transaction.objectStore("users");
-            const addRequest = objectStore.add(user)
+        if(db){
+            try {
+                const transaction = db.transaction("users", "readwrite")
+                const objectStore: IDBObjectStore = transaction.objectStore("users");
+                const addRequest = objectStore.add(user)
 
-            addRequest.onsuccess = (): void => {
-                login()
-                console.log(`Пользователь "${user.username}" успешно добавлена`)
+                addRequest.onsuccess = (): void => {
+                    setActiveUser(user.username)
+                    login()
+                    console.log(`Пользователь "${user.username}" успешно добавлена`)
+                }
+                transaction.oncomplete = (): void => {
+                    console.log('Транзакция успешно завершена')
+                }
+                transaction.onerror = (): void => {
+                    console.error('Ошибка при выполнении транзакции: ',transaction.error)
+                }
+            } catch (err) {
+                console.error('Ошибка при добавлении Пользователя:', err)
             }
-            transaction.oncomplete = (): void => {
-                console.log('Транзакция успешно завершена')
-            }
-            transaction.onerror = (): void => {
-                console.error('Ошибка при выполнении транзакции: ',transaction.error)
-            }
-        } catch (err) {
-            console.error('Ошибка при добавлении Пользователя:', err)
         }
     }
     const loginUser = (user: UserType): void => {
-        const transaction: IDBTransaction = db.transaction("users", "readonly")
-        const objectStore: IDBObjectStore = transaction.objectStore("users");
-        const request = objectStore.get(user.username)
-        request.onsuccess = (event: Event): void => {
-            const data = (event.target as IDBRequest).result;
-            if (data && data.password === user.password) {
-                login()
-            } else {
-                console.log("Неверный пароль")
+        if(db) {
+            const transaction: IDBTransaction = db.transaction("users", "readonly")
+            const objectStore: IDBObjectStore = transaction.objectStore("users");
+            const request = objectStore.get(user.username)
+            request.onsuccess = (event: Event): void => {
+                const data = (event.target as IDBRequest).result;
+                if (data && data.password === user.password) {
+                    setActiveUser(user.username)
+                    login()
+                } else {
+                    console.log("Неверный пароль")
+                }
             }
-        }
-        request.onerror = (event: Event): void => {
-            console.error("Ошибка при получении записи:", (event.target as IDBRequest).error);
+            request.onerror = (event: Event): void => {
+                console.error("Ошибка при получении записи:", (event.target as IDBRequest).error);
+            }
         }
     }
     const logout = () => {
@@ -99,7 +106,7 @@ function App() {
         <>
             {
                 isLogin
-                    ? <HomePage logout={logout} />
+                    ? <HomePage logout={logout} activeUser={activeUser}/>
                     : <LoginPage register={registerUser} login={loginUser} />
             }
 

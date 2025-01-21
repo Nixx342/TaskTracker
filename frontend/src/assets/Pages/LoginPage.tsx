@@ -4,6 +4,8 @@ import { UserType } from '../Types/UserType.ts';
 const LoginPage = (props) => {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [errorMsg, setErrorMsg] = useState<boolean>(false)
+
     const modalOpen = (id: string) => {
         const modal: HTMLElement | null = document.getElementById(id)
         modal?.showModal()
@@ -40,6 +42,11 @@ const LoginPage = (props) => {
             <button onClick={() => modalOpen('register')}>Зарегистрироваться</button>
 
             <dialog id="login">
+                {
+                    errorMsg
+                        ? <span></span>
+                        : null
+                }
                 <span>Введите имя пользователя:
                     <input
                         type={'text'}
