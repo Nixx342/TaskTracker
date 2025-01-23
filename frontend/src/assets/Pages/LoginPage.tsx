@@ -1,9 +1,8 @@
 import {useState} from "react";
-import { UserType } from '../Types/UserType.ts';
+import { TypeComponents } from '../Types/TypeComponents.ts';
 import '../Styles/LoginPage.scss'
 
 const LoginPage = (props) => {
-// const LoginPage = (props: LoginPageType) => {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [errorMsg, setErrorMsg] = useState<string>('')
@@ -21,7 +20,7 @@ const LoginPage = (props) => {
     const register =(): void => {
         setErrorMsg('')
         if (username && password) {
-            const user: UserType  = {
+            const user: TypeComponents  = {
                 username: username,
                 password: password,
             }
@@ -44,7 +43,7 @@ const LoginPage = (props) => {
     const login = () => {
         setErrorMsg('')
         if (username && password) {
-            const user: UserType  = {
+            const user: TypeComponents  = {
                 username: username,
                 password: password
             }
@@ -100,27 +99,33 @@ const LoginPage = (props) => {
                 }
             </dialog>
             <dialog id="register">
+                <div className={'main-modal-block'}>
+                    <div className={'input-area'}>
+                        <span>Имя пользователя:</span>
+                        <input
+                            type={'text'}
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                        />
+                    </div>
+                    <div className={'input-area'}>
+                        <span>Пароль:</span>
+                        <input
+                            type={'password'}
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <div className={'button-block'}>
+                    <button onClick={() => register()}>Зарегистрироваться</button>
+                    <button onClick={() => modalClose('register')}>Отмена</button>
+                </div>
                 {
                     errorMsg
-                        ? <div className={'error-msg'}>{errorMsg}</div>
+                        ? <div className={`error-msg ${errorMsg ? 'visible' : ''}`}>{errorMsg}</div>
                         : null
                 }
-                <span>Введите имя пользователя:
-                    <input
-                        type={'text'}
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
-                    />
-                </span>
-                <span>Введите пароль:
-                    <input
-                        type={'password'}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                    />
-                </span>
-                <button onClick={() => register()}>Зарегистрироваться</button>
-                <button onClick={() => modalClose('register')}>Отмена</button>
             </dialog>
         </>
     )

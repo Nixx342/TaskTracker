@@ -1,7 +1,7 @@
 import './App.css';
 import LoginPage from "./assets/Pages/LoginPage.tsx";
 import HomePage from "./assets/Pages/HomePage.tsx";
-import { UserType } from './assets/Types/UserType.ts';
+import { userType } from './assets/Types/TypeComponents.ts';
 import {useEffect, useState} from "react";
 
 
@@ -51,7 +51,7 @@ function App() {
         }
     }, [])
 
-    const registerUser = (user: UserType): void => {
+    const registerUser = (user: userType): void => {
         if(db){
             try {
                 const transaction = db.transaction("users", "readwrite")
@@ -74,7 +74,7 @@ function App() {
             }
         }
     }
-    const loginUser = (user: UserType): void => {
+    const loginUser = (user: userType): void => {
         if(db) {
             const transaction: IDBTransaction = db.transaction("users", "readonly")
             const objectStore: IDBObjectStore = transaction.objectStore("users");
