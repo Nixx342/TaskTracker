@@ -3,6 +3,7 @@ import LoginPage from "./assets/Pages/LoginPage.tsx";
 import HomePage from "./assets/Pages/HomePage.tsx";
 import { userType } from './assets/Types/TypeComponents.ts';
 import {useEffect, useState} from "react";
+import {BrowserRouter, Route, Routes} from "react-router-dom";
 
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -103,14 +104,24 @@ function App() {
     }
 
     return (
-        <>
+        <BrowserRouter>
+            <Routes>
             {
                 isLogin
-                    ? <HomePage logout={logout} activeUser={activeUser}/>
-                    : <LoginPage register={registerUser} login={loginUser} />
+                    ? <Route path={"/"} element={<HomePage logout={logout} activeUser={activeUser}/>}/>
+                    : <Route path={"/login"} element={<LoginPage register={registerUser} login={loginUser} />}/>
             }
+            </Routes>
+        </BrowserRouter>
 
-        </>
+        // <>
+        //     {
+        //         isLogin
+        //             ? <HomePage logout={logout} activeUser={activeUser}/>
+        //             : <LoginPage register={registerUser} login={loginUser} />
+        //     }
+        //
+        // </>
     );
 }
 

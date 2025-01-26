@@ -1,11 +1,13 @@
 import {useState} from "react";
 import { TypeComponents } from '../Types/TypeComponents.ts';
 import '../Styles/LoginPage.scss'
+import {useNavigate} from "react-router-dom";
 
 const LoginPage = (props) => {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [errorMsg, setErrorMsg] = useState<string>('')
+    const navigate = useNavigate()
 
     const modalOpen = (id: string) => {
         const modal: HTMLElement | null = document.getElementById(id)
@@ -28,6 +30,7 @@ const LoginPage = (props) => {
             setUsername('')
             setPassword('')
             modalClose('register')
+            navigate("/")
         } else {
             if (!username) {
                 setErrorMsg('Введите имя пользователя!')
@@ -51,6 +54,7 @@ const LoginPage = (props) => {
             setUsername('')
             setPassword('')
             modalClose('login')
+            navigate("/")
         } else {
             if (!username) {
                 setErrorMsg('Введите имя пользователя!')
