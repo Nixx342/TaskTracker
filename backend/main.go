@@ -1,21 +1,72 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
+const (
+	host     = "localhost"
+	port     = 5432       // стандартный порт PostgreSQL
+	user     = "postgres" // замени на своего пользователя
+	password = "Sze_55gf" // замени на свой пароль
+	dbname   = "TaskTracker"
+)
+
+type User struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
 
 func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Println("Hello and welcome, %s!", s)
+	// Подключение к базе данных
+	psqlInfo := "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable"
+	psqlInfo = fmt.Sprintf(psqlInfo, host, port, user, password, dbname)
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i ==== ", 100/i)
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
+	}
+	defer db.Close()
+
+	// Проверяем подключение
+	if err := db.Ping(); err != nil {
+		log.Fatalf("База данных недоступна: %v", err)
+	}
+	log.Println("Подключение к базе данных успешно!")
+
+	// Создаем сервер
+	r := gin.Default()
+
+	// Роут для проверки работы API
+	r.GET("/users", func(c *gin.Context) {
+		rows, err := db.Query("SELECT id, username, password FROM public.users")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пользователей"})
+			return
+		}
+		defer rows.Close()
+
+		var users []User
+		for rows.Next() {
+			var user User
+			if err := rows.Scan(&user.ID, &user.Username, &user.Password); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обработке пользователя"})
+				return
+			}
+			users = append(users, user)
+		}
+		c.JSON(http.StatusOK, users)
+	})
+
+	// Стартуем сервер
+	if err := r.Run(":8080"); err != nil {
+		log.Fatalf("Ошибка запуска сервера: %v", err)
 	}
 }
