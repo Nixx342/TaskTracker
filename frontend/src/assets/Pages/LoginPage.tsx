@@ -2,6 +2,7 @@ import {useState} from "react";
 import { TypeComponents } from '../Types/TypeComponents.ts';
 import '../Styles/LoginPage.scss'
 import {useNavigate} from "react-router-dom";
+import AddUser from "../Components/AddUser.tsx";
 
 const LoginPage = (props) => {
     const [username, setUsername] = useState<string>('');
@@ -131,6 +132,9 @@ const LoginPage = (props) => {
                         : null
                 }
             </dialog>
+
+
+            <AddUser />
         </>
     )
 }

@@ -64,9 +64,47 @@ func main() {
 		}
 		c.JSON(http.StatusOK, users)
 	})
+	r.GET("/users/:username", func(c *gin.Context) {
+		username := c.Param("username")
+
+		//row := db.QueryRow("SELECT id, username, password FROM public.users WHERE username = 'nixx'", username)
+		row := db.QueryRow("SELECT id, username, password FROM public.users WHERE username = $1", username)
+
+		var user User
+		if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
+			// Если пользователь не найден
+			if err == sql.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			} else {
+				// Другая ошибка
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при выполнении запроса"})
+			}
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
+	})
+
+	r.POST("/adduser", func(c *gin.Context) {
+		var user User
+		if err := c.ShouldBindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+			return
+		}
+
+		query := "INSERT INTO public.users (username, password) VALUES ($1, $2) RETURNING id"
+		err := db.QueryRow(query, user.Username, user.Password).Scan(&user.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении пользователя"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Пользователь добавлен", "user": user})
+	})
 
 	// Стартуем сервер
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run("0.0.0.0:8080"); err != nil {
+		//if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Ошибка запуска сервера: %v", err)
 	}
 }
