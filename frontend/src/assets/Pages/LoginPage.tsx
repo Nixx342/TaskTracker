@@ -2,7 +2,7 @@ import {useState} from "react";
 import { TypeComponents } from '../Types/TypeComponents.ts';
 import '../Styles/LoginPage.scss'
 import {useNavigate} from "react-router-dom";
-
+/// проверочная строка
 const LoginPage = (props) => {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');

@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	host     = "localhost"
+	//host     = "localhost"
+	host     = "46.146.232.41"
 	port     = 5432       // стандартный порт PostgreSQL
 	user     = "postgres" // замени на своего пользователя
 	password = "Sze_55gf" // замени на свой пароль
