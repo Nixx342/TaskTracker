@@ -1,8 +1,8 @@
 import {useState} from "react";
-import { TypeComponents } from '../Types/TypeComponents.ts';
+// import { TypeComponents } from '../Types/TypeComponents.ts';
 import '../Styles/LoginPage.scss'
 import {useNavigate} from "react-router-dom";
-/// проверочная строка
+
 const LoginPage = (props) => {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
@@ -67,7 +67,16 @@ const LoginPage = (props) => {
             }
         }
     }
-
+    const loginKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            login();
+        }
+    }
+    const registerKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            register();
+        }
+    }
     return (
         <>
             <button onClick={() => modalOpen('login')}>Войти</button>
@@ -80,6 +89,7 @@ const LoginPage = (props) => {
                         <input
                             type={'text'}
                             value={username}
+                            onKeyDown={loginKeyDown}
                             onChange={e => setUsername(e.target.value)}
                         />
                     </div>
@@ -88,6 +98,7 @@ const LoginPage = (props) => {
                         <input
                             type={'password'}
                             value={password}
+                            onKeyDown={loginKeyDown}
                             onChange={e => setPassword(e.target.value)}
                         />
                     </div>
@@ -109,6 +120,7 @@ const LoginPage = (props) => {
                         <input
                             type={'text'}
                             value={username}
+                            onKeyDown={registerKeyDown}
                             onChange={e => setUsername(e.target.value)}
                         />
                     </div>
@@ -117,6 +129,7 @@ const LoginPage = (props) => {
                         <input
                             type={'password'}
                             value={password}
+                            onKeyDown={registerKeyDown}
                             onChange={e => setPassword(e.target.value)}
                         />
                     </div>

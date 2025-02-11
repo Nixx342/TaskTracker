@@ -34,7 +34,6 @@ dialog {
   overflow: hidden;
   background-color: red;
   transition: max-height 0.5s ease;
-  //height: 25%;
 }
 .error-msg.visible {
   max-height: 25%;

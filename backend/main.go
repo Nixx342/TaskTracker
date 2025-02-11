@@ -1,22 +1,22 @@
 package main
 
 import (
+	"backend/DB"
 	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
+	"log"
+	"net/http"
 )
 
 const (
-	//host     = "localhost"
-	host     = "46.146.232.41"
-	port     = 5432       // стандартный порт PostgreSQL
-	user     = "postgres" // замени на своего пользователя
-	password = "Sze_55gf" // замени на свой пароль
-	dbname   = "TaskTracker"
+	host     = DB.Host
+	port     = DB.Port
+	user     = DB.User
+	password = DB.Password
+	dbname   = DB.DBName
 )
 
 type User struct {
@@ -26,18 +26,32 @@ type User struct {
 }
 
 func main() {
+	//
+	//connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	//db, err := sql.Open("postgres", connStr)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//defer db.Close()
+	//result, err := db.Exec("insert into users(id, username, password) values($1, $2, $3)", 5, "newUser2", "newPassword2")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(result.LastInsertId())
+	//fmt.Println(result.RowsAffected())
+
 	// Подключение к базе данных
 	psqlInfo := "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable"
 	psqlInfo = fmt.Sprintf(psqlInfo, host, port, user, password, dbname)
 
-	db, err := sql.Open("postgres", psqlInfo)
+	DB, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
 	}
-	defer db.Close()
+	defer DB.Close()
 
 	// Проверяем подключение
-	if err := db.Ping(); err != nil {
+	if err := DB.Ping(); err != nil {
 		log.Fatalf("База данных недоступна: %v", err)
 	}
 	log.Println("Подключение к базе данных успешно!")
@@ -47,7 +61,7 @@ func main() {
 
 	// Роут для проверки работы API
 	r.GET("/users", func(c *gin.Context) {
-		rows, err := db.Query("SELECT id, username, password FROM public.users")
+		rows, err := DB.Query("SELECT id, username, password FROM public.users")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пользователей"})
 			return
@@ -68,8 +82,8 @@ func main() {
 	r.GET("/users/:username", func(c *gin.Context) {
 		username := c.Param("username")
 
-		//row := db.QueryRow("SELECT id, username, password FROM public.users WHERE username = 'nixx'", username)
-		row := db.QueryRow("SELECT id, username, password FROM public.users WHERE username = $1", username)
+		//row := DB.QueryRow("SELECT id, username, password FROM public.users WHERE username = 'nixx'", username)
+		row := DB.QueryRow("SELECT id, username, password FROM public.users WHERE username = $1", username)
 
 		var user User
 		if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
@@ -89,18 +103,25 @@ func main() {
 	r.POST("/adduser", func(c *gin.Context) {
 		var user User
 		if err := c.ShouldBindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные данные"})
 			return
 		}
 
-		query := "INSERT INTO public.users (username, password) VALUES ($1, $2) RETURNING id"
-		err := db.QueryRow(query, user.Username, user.Password).Scan(&user.ID)
-		if err != nil {
+		// Хешируем пароль перед сохранением
+		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+
+		// SQL-запрос на добавление пользователя
+		row := DB.QueryRow(
+			"INSERT INTO public.users (username, password) VALUES ($1, $2) RETURNING id",
+			user.Username, string(hashedPassword),
+		)
+
+		if err := row.Scan(&user.ID); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении пользователя"})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Пользователь добавлен", "user": user})
+		c.JSON(http.StatusCreated, user)
 	})
 
 	// Стартуем сервер
