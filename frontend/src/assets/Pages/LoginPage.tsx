@@ -1,11 +1,12 @@
-import {useState} from "react";
+import {useState, useEffect} from "react";
 // import { TypeComponents } from '../Types/TypeComponents.ts';
 import '../Styles/LoginPage.scss'
 import {useNavigate} from "react-router-dom";
+import axios from "axios";
 
 const LoginPage = (props) => {
-    const [username, setUsername] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
+    const [username, setUsername] = useState<string>('')
+    const [password, setPassword] = useState<string>('')
     const [errorMsg, setErrorMsg] = useState<string>('')
     const navigate = useNavigate()
 
@@ -77,8 +78,39 @@ const LoginPage = (props) => {
             register();
         }
     }
+    // const getUsers = async () => {
+    //     const response = await axios.get('localhost:8080/users')
+    //     console.log(await response)
+        
+    // }
+    async function getUser() {
+        // const url = '/users'
+        const url = 'http://localhost:8080/users'
+        await axios.get(url).then((resp) => {
+            const data = resp.data
+            console.log(data)
+        })
+        
+        
+        // useEffect(() => {
+        //     const fetchUsers = async () => {
+        //         try {
+        //             const response = await axios.get('/users');
+        //             console.log(response.data);
+        //         } catch (error) {
+        //             console.error('Ошибка при получении данных:', error);
+        //         }
+        //     };
+    
+        //     fetchUsers();
+        // }, []);
+    }
+
+
+
     return (
         <>
+            <button onClick={getUser}>Get Users</button>
             <button onClick={() => modalOpen('login')}>Войти</button>
             <button onClick={() => modalOpen('register')}>Зарегистрироваться</button>
 

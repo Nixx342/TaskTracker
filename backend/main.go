@@ -22,23 +22,10 @@ const (
 type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"-"`
 }
 
 func main() {
-	//
-	//connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-	//db, err := sql.Open("postgres", connStr)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//defer db.Close()
-	//result, err := db.Exec("insert into users(id, username, password) values($1, $2, $3)", 5, "newUser2", "newPassword2")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Println(result.LastInsertId())
-	//fmt.Println(result.RowsAffected())
 
 	// Подключение к базе данных
 	psqlInfo := "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable"
@@ -49,19 +36,43 @@ func main() {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
 	}
 	defer DB.Close()
-
-	// Проверяем подключение
 	if err := DB.Ping(); err != nil {
 		log.Fatalf("База данных недоступна: %v", err)
 	}
 	log.Println("Подключение к базе данных успешно!")
-
-	// Создаем сервер
 	r := gin.Default()
 
-	// Роут для проверки работы API
-	r.GET("/users", func(c *gin.Context) {
-		rows, err := DB.Query("SELECT id, username, password FROM public.users")
+	// Добавляем middleware для CORS
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
+
+	setupRoutes(r, DB)
+
+	if err := r.Run("0.0.0.0:8080"); err != nil {
+		log.Fatalf("Ошибка запуска сервера: %v", err)
+	}
+}
+
+func setupRoutes(r *gin.Engine, db *sql.DB) {
+	r.GET("/users", getUsersHandler(db))
+	r.GET("/users/:username", getUserByUsernameHandler(db))
+	r.POST("/adduser", addUserHandler(db))
+}
+
+func getUsersHandler(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rows, err := db.Query("SELECT id, username FROM public.users")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пользователей"})
 			return
@@ -71,47 +82,56 @@ func main() {
 		var users []User
 		for rows.Next() {
 			var user User
-			if err := rows.Scan(&user.ID, &user.Username, &user.Password); err != nil {
+			if err := rows.Scan(&user.ID, &user.Username); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обработке пользователя"})
 				return
 			}
 			users = append(users, user)
 		}
 		c.JSON(http.StatusOK, users)
-	})
-	r.GET("/users/:username", func(c *gin.Context) {
+	}
+}
+
+func getUserByUsernameHandler(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		username := c.Param("username")
 
-		//row := DB.QueryRow("SELECT id, username, password FROM public.users WHERE username = 'nixx'", username)
-		row := DB.QueryRow("SELECT id, username, password FROM public.users WHERE username = $1", username)
+		row := db.QueryRow("SELECT id, username, password FROM public.users WHERE username = $1", username)
 
 		var user User
 		if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
-			// Если пользователь не найден
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 			} else {
-				// Другая ошибка
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при выполнении запроса"})
 			}
 			return
 		}
 
 		c.JSON(http.StatusOK, user)
-	})
+	}
+}
 
-	r.POST("/adduser", func(c *gin.Context) {
+func addUserHandler(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		var user User
 		if err := c.ShouldBindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные данные"})
 			return
 		}
 
-		// Хешируем пароль перед сохранением
-		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if len(user.Password) < 6 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Пароль должен содержать минимум 6 символов"})
+			return
+		}
 
-		// SQL-запрос на добавление пользователя
-		row := DB.QueryRow(
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обработке пароля"})
+			return
+		}
+
+		row := db.QueryRow(
 			"INSERT INTO public.users (username, password) VALUES ($1, $2) RETURNING id",
 			user.Username, string(hashedPassword),
 		)
@@ -121,12 +141,7 @@ func main() {
 			return
 		}
 
+		user.Password = ""
 		c.JSON(http.StatusCreated, user)
-	})
-
-	// Стартуем сервер
-	if err := r.Run("0.0.0.0:8080"); err != nil {
-		//if err := r.Run(":8080"); err != nil {
-		log.Fatalf("Ошибка запуска сервера: %v", err)
 	}
 }
