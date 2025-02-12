@@ -22,7 +22,7 @@ const (
 type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
-	Password string `json:"-"`
+	Password string `json:"password"`
 }
 
 func main() {
@@ -72,6 +72,7 @@ func setupRoutes(r *gin.Engine, db *sql.DB) {
 
 func getUsersHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		//rows, err := db.Query("SELECT id, username, password FROM public.users")
 		rows, err := db.Query("SELECT id, username FROM public.users")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пользователей"})

@@ -11,7 +11,7 @@ const HomePage = (props) => {
     return (
         <>
             <div>
-                {props.activeUser}
+                {localStorage.getItem('activeUser')}
             </div>
             <button onClick={()=>logout()}>Выйти</button>
         </>

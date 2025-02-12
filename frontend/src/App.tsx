@@ -75,28 +75,30 @@ function App() {
             }
         }
     }
-    const loginUser = (user: userType): void => {
-        if(db) {
-            const transaction: IDBTransaction = db.transaction("users", "readonly")
-            const objectStore: IDBObjectStore = transaction.objectStore("users");
-            const request = objectStore.get(user.username)
-            request.onsuccess = (event: Event): void => {
-                const data = (event.target as IDBRequest).result;
-                if (data && data.password === user.password) {
-                    setActiveUser(user.username)
-                    login()
-                } else {
-                    console.log("Неверный пароль")
-                }
-            }
-            request.onerror = (event: Event): void => {
-                console.error("Ошибка при получении записи:", (event.target as IDBRequest).error);
-            }
-        }
-    }
+
+    // const loginUser = (user: userType): void => {
+    //     if(db) {
+    //         const transaction: IDBTransaction = db.transaction("users", "readonly")
+    //         const objectStore: IDBObjectStore = transaction.objectStore("users");
+    //         const request = objectStore.get(user.username)
+    //         request.onsuccess = (event: Event): void => {
+    //             const data = (event.target as IDBRequest).result;
+    //             if (data && data.password === user.password) {
+    //                 setActiveUser(user.username)
+    //                 login()
+    //             } else {
+    //                 console.log("Неверный пароль")
+    //             }
+    //         }
+    //         request.onerror = (event: Event): void => {
+    //             console.error("Ошибка при получении записи:", (event.target as IDBRequest).error);
+    //         }
+    //     }
+    // }
     const logout = () => {
         setIsLogin(false);
         localStorage.setItem('isLogin', 'false');
+        localStorage.setItem('activeUser', '')
     }
     const login = () => {
         setIsLogin(true);
@@ -111,7 +113,8 @@ function App() {
                     ? <Route path={"/"} element={<HomePage logout={logout} activeUser={activeUser}/>}/>
                     : (
                         <>
-                            <Route path={"/login"} element={<LoginPage register={registerUser} login={loginUser} />}/>
+                            <Route path={"/login"} element={<LoginPage register={registerUser} login={login} />}/>
+                            {/*<Route path={"/login"} element={<LoginPage register={registerUser} />}/>*/}
                             <Route path={"*"} element={<Navigate to={'/login'}/>}/>
                         </>
                     )

@@ -44,18 +44,21 @@ const LoginPage = (props) => {
             }
         }
     }
+    const loginKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            login();
+        }
+    }
+    const registerKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            register();
+        }
+    }
     const login = () => {
         setErrorMsg('')
         if (username && password) {
-            const user: TypeComponents  = {
-                username: username,
-                password: password
-            }
-            props.login(user)
-            setUsername('')
-            setPassword('')
-            modalClose('login')
-            navigate("/")
+            checkLoginData(username)
+
         } else {
             if (!username) {
                 setErrorMsg('Введите имя пользователя!')
@@ -68,49 +71,31 @@ const LoginPage = (props) => {
             }
         }
     }
-    const loginKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "Enter") {
-            login();
-        }
-    }
-    const registerKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "Enter") {
-            register();
-        }
-    }
-    // const getUsers = async () => {
-    //     const response = await axios.get('localhost:8080/users')
-    //     console.log(await response)
-        
-    // }
-    async function getUser() {
-        // const url = '/users'
-        const url = 'http://localhost:8080/users'
-        await axios.get(url).then((resp) => {
-            const data = resp.data
-            console.log(data)
-        })
-        
-        
-        // useEffect(() => {
-        //     const fetchUsers = async () => {
-        //         try {
-        //             const response = await axios.get('/users');
-        //             console.log(response.data);
-        //         } catch (error) {
-        //             console.error('Ошибка при получении данных:', error);
-        //         }
-        //     };
-    
-        //     fetchUsers();
-        // }, []);
+    const checkLoginData = async (username: string) => {
+        const url = `http://localhost:8080/users/${username}`
+        await axios.get(url)
+            .then((resp) => {
+                const data = resp.data
+                if(data.password === password) {
+                    setUsername('')
+                    setPassword('')
+                    props.login()
+                    localStorage.setItem('activeUser', username)
+                    modalClose('login')
+                    navigate("/")
+                } else {
+                    setErrorMsg('Неверный пароль')
+                }
+            })
+            .catch(() => {
+                setErrorMsg('Пользователь не существует')
+            })
     }
 
 
 
     return (
         <>
-            <button onClick={getUser}>Get Users</button>
             <button onClick={() => modalOpen('login')}>Войти</button>
             <button onClick={() => modalOpen('register')}>Зарегистрироваться</button>
 
