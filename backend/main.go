@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 )
@@ -25,21 +24,57 @@ type User struct {
 	Password string `json:"password"`
 }
 
-func main() {
+func init() {
+	// Проверка параметров подключения
+	log.Printf("Database connection params: host=%s port=%d user=%s dbname=%s", host, port, user, dbname)
 
 	// Подключение к базе данных
-	psqlInfo := "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable"
-	psqlInfo = fmt.Sprintf(psqlInfo, host, port, user, password, dbname)
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
 
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		log.Fatalf("Ошибка при подключении к БД: %v", err)
+	}
+	defer db.Close()
+
+	// Обновляем последовательность на основе максимального существующего id
+	_, err = db.Exec(`
+		DO $$ 
+		BEGIN 
+			-- Создаем таблицу, если она не существует
+			CREATE TABLE IF NOT EXISTS public.users (
+				id SERIAL PRIMARY KEY,
+				username VARCHAR(50) UNIQUE NOT NULL,
+				password VARCHAR(255) NOT NULL
+			);
+			
+			-- Обновляем последовательность
+			PERFORM setval('users_id_seq', COALESCE((SELECT MAX(id) FROM public.users), 0) + 1, false);
+		END $$;
+	`)
+	if err != nil {
+		log.Printf("Ошибка при обновлении последовательности: %v", err)
+	}
+}
+
+func main() {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+
+	log.Println("Попытка подключения к базе данных...")
 	DB, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
+		log.Fatalf("Ошибка при открытии соединения с БД: %v", err)
 	}
 	defer DB.Close()
+
+	log.Println("Проверка соединения с базой данных...")
 	if err := DB.Ping(); err != nil {
-		log.Fatalf("База данных недоступна: %v", err)
+		log.Fatalf("Ошибка при проверке соединения с БД: %v", err)
 	}
-	log.Println("Подключение к базе данных успешно!")
+	log.Println("Успешное подключение к базе данных!")
+
 	r := gin.Default()
 
 	// Добавляем middleware для CORS
@@ -117,32 +152,34 @@ func addUserHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user User
 		if err := c.ShouldBindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные данные"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Некорректные данные: %v", err)})
 			return
 		}
-
-		if len(user.Password) < 6 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Пароль должен содержать минимум 6 символов"})
-			return
-		}
-
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		var exists bool
+		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM public.users WHERE username = $1)", user.Username).Scan(&exists)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обработке пароля"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при проверке пользователя: %v", err)})
+			return
+		}
+		if exists {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Пользователь с таким именем уже существует"})
 			return
 		}
 
-		row := db.QueryRow(
+		// Добавляем пользователя в базу данных напрямую с исходным паролем
+		var userID int
+		err = db.QueryRow(
 			"INSERT INTO public.users (username, password) VALUES ($1, $2) RETURNING id",
-			user.Username, string(hashedPassword),
-		)
+			user.Username, user.Password, // Используем исходный пароль
+		).Scan(&userID)
 
-		if err := row.Scan(&user.ID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении пользователя"})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при добавлении пользователя: %v", err)})
 			return
 		}
 
-		user.Password = ""
+		user.ID = userID
+		user.Password = "" // Не возвращаем пароль в ответе
 		c.JSON(http.StatusCreated, user)
 	}
 }

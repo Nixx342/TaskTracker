@@ -1,52 +1,29 @@
-import {useState, useEffect} from "react";
-// import { TypeComponents } from '../Types/TypeComponents.ts';
+import {useState} from "react";
 import '../Styles/LoginPage.scss'
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
+import {LoginPageProps} from "../Types/TypeComponents.ts";
 
-const LoginPage = (props) => {
+
+const LoginPage = ({ login: handleLoginSuccess }: LoginPageProps) => {
     const [username, setUsername] = useState<string>('')
     const [password, setPassword] = useState<string>('')
     const [errorMsg, setErrorMsg] = useState<string>('')
     const navigate = useNavigate()
 
     const modalOpen = (id: string) => {
-        const modal: HTMLElement | null = document.getElementById(id)
+        const modal = document.getElementById(id) as HTMLDialogElement | null
         modal?.showModal()
         setErrorMsg('')
     }
     const modalClose = (id: string) => {
-        const modal: HTMLElement | null = document.getElementById(id)
+        const modal = document.getElementById(id) as HTMLDialogElement | null
         modal?.close()
         setErrorMsg('')
     }
-    const register =(): void => {
-        setErrorMsg('')
-        if (username && password) {
-            const user: TypeComponents  = {
-                username: username,
-                password: password,
-            }
-            props.register(user)
-            setUsername('')
-            setPassword('')
-            modalClose('register')
-            navigate("/")
-        } else {
-            if (!username) {
-                setErrorMsg('Введите имя пользователя!')
-            }
-            if (!password) {
-                setErrorMsg('Введите пароль!')
-            }
-            if (!username && !password) {
-                setErrorMsg('Заполните все поля!')
-            }
-        }
-    }
     const loginKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Enter") {
-            login();
+            handleLogin();
         }
     }
     const registerKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -54,11 +31,10 @@ const LoginPage = (props) => {
             register();
         }
     }
-    const login = () => {
+    const handleLogin = () => {
         setErrorMsg('')
         if (username && password) {
             checkLoginData(username)
-
         } else {
             if (!username) {
                 setErrorMsg('Введите имя пользователя!')
@@ -68,6 +44,39 @@ const LoginPage = (props) => {
             }
             if (!username && !password) {
                 setErrorMsg('Заполните все поля!')
+            }
+        }
+    }
+    const register = async (): Promise<void> => {
+        setErrorMsg('')
+        
+        // Валидация полей
+        if (!username) {
+            setErrorMsg('Введите имя пользователя!')
+            return
+        }
+        if (!password) {
+            setErrorMsg('Введите пароль!')
+            return
+        }
+        if (password.length < 6) {
+            setErrorMsg('Пароль должен содержать минимум 6 символов!')
+            return
+        }
+
+        try {
+            await registerNewUser(username, password)
+            setUsername('')
+            setPassword('')
+            modalClose('register')
+            navigate("/")
+            localStorage.setItem('activeUser', username)
+            handleLoginSuccess()
+        } catch (error) {
+            if (error instanceof Error) {
+                setErrorMsg(error.message)
+            } else {
+                setErrorMsg('Произошла неизвестная ошибка')
             }
         }
     }
@@ -79,7 +88,7 @@ const LoginPage = (props) => {
                 if(data.password === password) {
                     setUsername('')
                     setPassword('')
-                    props.login()
+                    handleLoginSuccess()
                     localStorage.setItem('activeUser', username)
                     modalClose('login')
                     navigate("/")
@@ -90,6 +99,25 @@ const LoginPage = (props) => {
             .catch(() => {
                 setErrorMsg('Пользователь не существует')
             })
+    }
+    const registerNewUser = async (username: string, password: string) => {
+        try {
+            const response = await axios.post('http://localhost:8080/adduser', {
+                username: username,
+                password: password,
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            return response.data
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.error || 'Ошибка при добавлении пользователя')
+            } else {
+                throw new Error('Ошибка сети')
+            }
+        }
     }
 
 
@@ -121,7 +149,7 @@ const LoginPage = (props) => {
                     </div>
                 </div>
                 <div className={'button-block'}>
-                    <button onClick={() => login()}>Войти</button>
+                    <button onClick={() => handleLogin()}>Войти</button>
                     <button onClick={() => modalClose('login')}>Отмена</button>
                 </div>
                 {

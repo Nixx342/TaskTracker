@@ -9,3 +9,11 @@
      description: string
      board_id: number
  }
+
+ export interface LoginPageProps {
+     login: () => void;
+ }
+
+ export interface HomePageProps {
+     logout: () => void;
+ }

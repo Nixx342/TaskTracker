@@ -1,11 +1,12 @@
 import {useNavigate} from "react-router-dom";
+import {HomePageProps} from "../Types/TypeComponents.ts";
 
-
-const HomePage = (props) => {
+const HomePage = ({logout: handleLogout} : HomePageProps) => {
 
     const navigate = useNavigate()
     const logout = () => {
-        props.logout()
+        // props.logout()
+        handleLogout()
         navigate("/login")
     }
     return (
