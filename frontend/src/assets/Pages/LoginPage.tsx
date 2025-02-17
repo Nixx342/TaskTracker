@@ -126,7 +126,6 @@ const LoginPage = ({ login: handleLoginSuccess }: LoginPageProps) => {
         <>
             <button onClick={() => modalOpen('login')}>Войти</button>
             <button onClick={() => modalOpen('register')}>Зарегистрироваться</button>
-
             <dialog id="login">
                 <div className={'main-modal-block'}>
                     <div className={'input-area'}>
